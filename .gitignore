@@ -17,6 +17,7 @@ __pycache__/
 
 # --- Runtime ---
 server/kfs-display-server.log
+server/kfs-state.json
 server/config.json
 
 # --- OS ---

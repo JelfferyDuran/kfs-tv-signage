@@ -24,7 +24,11 @@ from urllib.parse import urlparse, parse_qs
 ROOT = os.path.dirname(os.path.abspath(__file__))
 CONTENT_DIR = os.path.join(ROOT, "content")
 PORT = int(os.environ.get("KFS_PORT", "8080"))
-TVS = ["menu1", "menu2", "menu3"]
+# Comma-separated known TV IDs. Devices that poll with an unknown ID are
+# auto-registered (see _ensure_tv), so any device can join the ecosystem.
+TVS = [t.strip() for t in os.environ.get("KFS_TVS", "menu1,menu2,menu3").split(",") if t.strip()]
+DEVICE_NAMES = os.environ.get("KFS_DEVICE_NAMES", "")  # optional: "menu1=Kitchen 1,menu2=Kitchen 2"
+_AUTOREG = bool(os.environ.get("KFS_AUTOREGISTER", "1") != "0")
 
 # single-instance guard: bind the same address the server will use; if taken, exit quietly
 probe = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -40,17 +44,48 @@ with open(os.path.join(ROOT, "kfs-display-server.log"), "a", encoding="utf-8") a
     f.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')}  start (pid={os.getpid()})\n")
 
 # default scene per TV
-scenes = {tv: {"type": "blank"} for tv in TVS}
+STATE_FILE = os.path.join(ROOT, "kfs-state.json")
+def _load_state():
+    try:
+        with open(STATE_FILE, encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return {}
+_state = _load_state()
+TVS = _state.get("tvs") or TVS
+scenes = {tv: _state.get("scenes", {}).get(tv, {"type": "blank"}) for tv in TVS}
 lock = threading.Lock()
 
+def _save_state():
+    try:
+        with open(STATE_FILE, "w", encoding="utf-8") as f:
+            json.dump({"tvs": TVS, "scenes": scenes}, f, indent=1)
+    except Exception:
+        pass
+
+def ensure_tv(tv):
+    """Auto-register unknown TV ids so new devices join the ecosystem."""
+    if tv in scenes:
+        return True
+    if _AUTOREG:
+        with lock:
+            if tv not in scenes:
+                TVS.append(tv)
+                scenes[tv] = {"type": "blank"}
+                _save_state()
+                return True
+    return False
+
 def set_scene(tv, scene):
+    if tv == "all" or tv == "*":
+        with lock:
+            for t in list(scenes): scenes[t] = scene
+        return True
+    if not ensure_tv(tv):
+        return False
     with lock:
-        if tv == "all":
-            for t in TVS: scenes[t] = scene
-        elif tv in TVS:
-            scenes[tv] = scene
-        else:
-            return False
+        scenes[tv] = scene
+        _save_state()
     return True
 
 class Handler(BaseHTTPRequestHandler):
@@ -70,6 +105,7 @@ class Handler(BaseHTTPRequestHandler):
         p = u.path
         if p.startswith("/scene/"):
             tv = p.split("/")[2]
+            ensure_tv(tv)
             with lock:
                 scene = scenes.get(tv)
             if scene is None:
@@ -92,8 +128,15 @@ class Handler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(data)
         elif p == "/":
-            self._json(200, {"tvs": TVS, "scenes": {t: scenes[t] for t in TVS},
-                             "content": os.listdir(CONTENT_DIR) if os.path.isdir(CONTENT_DIR) else []})
+                    names = {}
+                    if DEVICE_NAMES:
+                        for pair in DEVICE_NAMES.split(","):
+                            if "=" in pair:
+                                k, v = pair.split("=", 1)
+                                names[k.strip()] = v.strip()
+                    self._json(200, {"tvs": TVS, "device_names": names,
+                                                 "scenes": {t: scenes[t] for t in TVS},
+                                                 "content": os.listdir(CONTENT_DIR) if os.path.isdir(CONTENT_DIR) else []})
         else:
             self._json(404, {"error": "not found"})
 
