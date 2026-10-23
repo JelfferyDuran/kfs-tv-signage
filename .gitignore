@@ -1,0 +1,24 @@
+# Heavy local-only artifacts (never commit these)
+toolchain/
+tizen-studio-setup.exe
+*.wgt
+*.p12 *.pwd *.csr *.pri
+SamsungCertificate/
+
+# --- Build outputs ---
+tizen-app/build/
+tizen-app/build-*/
+tizen-app/deploy-*/
+tizen-app/install-project*/
+tizen-app/release-*/
+tizen-app/preview/
+server/__pycache__/
+__pycache__/
+
+# --- Runtime ---
+server/kfs-display-server.log
+server/config.json
+
+# --- OS ---
+.DS_Store
+Thumbs.db

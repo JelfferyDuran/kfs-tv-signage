@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>KFS Kitchen Display — Preview</title>
+<style>
+  html, body { margin:0; padding:0; width:100%; height:100%; background:#000; overflow:hidden; }
+  #stage { position:fixed; inset:0; }
+  #stage img, #stage video { width:100%; height:100%; object-fit:contain; }
+  #stage iframe { width:100%; height:100%; border:0; }
+  #menu { position:fixed; inset:0; background:#0d1117; color:#fff; font-family:system-ui,sans-serif;
+          display:flex; flex-direction:column; }
+  #menu .header { padding:24px 40px; font-size:42px; font-weight:700; letter-spacing:1px;
+                  border-bottom:2px solid #ffd700; color:#ffd700; }
+  #menu .items { flex:1; overflow:hidden; padding:24px 40px; }
+  #menu .item { display:flex; justify-content:space-between; align-items:baseline;
+                padding:14px 0; border-bottom:1px solid #2a2f3a; font-size:34px; }
+  #menu .item .price { color:#ffd700; font-weight:700; margin-left:24px; white-space:nowrap; }
+  #menu .footer { padding:16px 40px; font-size:22px; color:#8b949e; text-align:center; }
+  #status { position:fixed; bottom:8px; right:12px; color:#555; font-size:14px; z-index:99;
+            font-family:monospace; }
+  #offline { position:fixed; inset:0; background:#000; color:#ff4444; display:none;
+             align-items:center; justify-content:center; font-size:48px; font-family:system-ui; z-index:100; }
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<div id="menu" style="display:none"></div>
+<div id="offline">NO SIGNAL — CHECK SERVER</div>
+<div id="status"></div>
+<script>
+  // PREVIEW MODE: renders the sample menu scene exactly as the TV app would.
+  var menuEl = document.getElementById("menu");
+  var data = {
+    title: "KFS KITCHEN — LUNCH",
+    items: [
+      { name: "Chicken Sandwich", price: "$9.99" },
+      { name: "Philly Cheesesteak", price: "$12.49" },
+      { name: "Garden Salad", price: "$7.99" },
+      { name: "Grilled Chicken Wrap", price: "$8.49" },
+      { name: "Double Bacon Burger", price: "$11.99" },
+      { name: "Fries (Large)", price: "$3.49" },
+      { name: "Soda / Bottled Water", price: "$1.99" }
+    ],
+    footer: "KFS Kitchen — fresh daily · order at the counter"
+  };
+  menuEl.style.display = "flex";
+  var html = '<div class="header">' + data.title + "</div>";
+  html += '<div class="items">';
+  data.items.forEach(function (it) {
+    html += '<div class="item"><span>' + it.name + "</span>" +
+            '<span class="price">' + it.price + "</span></div>";
+  });
+  html += "</div>";
+  html += '<div class="footer">' + data.footer + "</div>";
+  menuEl.innerHTML = html;
+  document.getElementById("status").textContent = "PREVIEW — menu scene (as TV will render)";
+</script>
+</body>
+</html>
