@@ -16,8 +16,8 @@ commercial product with an ecosystem.
 
 | Item | Why | Effort |
 |---|---|---|
-| **API auth tokens** | Anyone on the LAN can currently push scenes. Add a shared-secret token for `/set` (read stays open for devices). | Small |
-| **Playlists / scheduling** | Server-side rotation: `{"playlist": [scene1, scene2], "interval": 15}`. The killer feature for signage. | Medium |
+| **API auth tokens** | Anyone on the LAN can currently push scenes. Add a shared-secret token for `/set` (read stays open for devices). | ✅ Done — `KFS_API_TOKEN` |
+| **Playlists / scheduling** | Server-side rotation: `{"playlist": [scene1, scene2], "interval": 15}`. The killer feature for signage. | ✅ Done — `playlist` scene type |
 | **Webhooks** | Notify apps when a scene changes / device goes offline (heartbeat tracking). | Medium |
 | **Device heartbeat** | Track last-poll time per device; expose in `GET /`; alert on stale devices. | Small |
 | **Control dashboard** | A single HTML page (served by the server) to manage devices, push scenes, upload content. | Medium |
@@ -55,11 +55,10 @@ ChatGPT prompt for any client's brand.
 
 ## Suggested first PRs (good for other LLM agents)
 
-1. **Playlists** — add `playlist` scene type with rotation in the server
-2. **Auth** — `KFS_API_TOKEN` env var, reject `/set` without it
-3. **Heartbeat** — track `last_seen` per device, expose in `GET /`
-4. **Dashboard** — single-file HTML control panel served at `/admin`
-5. **Docker** — containerize the server
+1. **Webhooks** — notify apps when a scene changes / device goes offline
+2. **Heartbeat** — track `last_seen` per device, expose in `GET /`
+3. **Dashboard** — single-file HTML control panel served at `/admin`
+4. **Docker** — containerize the server
 
 Each is self-contained, testable with `curl`, and doesn't break the scene
-protocol. Start with playlists — it's the feature customers ask for first.
+protocol. Playlists and API auth are already shipped.

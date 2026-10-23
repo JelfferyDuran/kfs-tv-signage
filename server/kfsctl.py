@@ -8,7 +8,8 @@ Usage:
   python kfsctl.py image <file> [tv]               # show an image (default: all)
   python kfsctl.py video <file> [tv]               # play a video (default: all)
   python kfsctl.py url <http://...> [tv]           # show a web page
-  python kfsctl.py blank [tv]                      # blank screen
+  python kfsctl.py blank [tv]                       # blank screen
+   python kfsctl.py playlist <interval> <file|url>... # rotate scenes (default: all)
   python kfsctl.py copy <file>...                  # copy content files to server
 
 tv: menu1 | menu2 | menu3 | all (default all)
@@ -20,10 +21,22 @@ CONTENT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "content"
 TVS = ("menu1", "menu2", "menu3", "all")
 
 def post(payload):
+    headers = {"Content-Type": "application/json"}
+    token = os.environ.get("KFS_API_TOKEN", "")
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
     req = urllib.request.Request(SERVER + "/set", data=json.dumps(payload).encode(),
-                                 headers={"Content-Type": "application/json"})
-    with urllib.request.urlopen(req, timeout=5) as r:
-        return json.loads(r.read().decode())
+                                 headers=headers)
+    try:
+        with urllib.request.urlopen(req, timeout=5) as r:
+            return json.loads(r.read().decode())
+    except urllib.error.HTTPError as e:
+        try:
+            return json.loads(e.read().decode())
+        except Exception:
+            return {"error": f"HTTP {e.code}"}
+    except Exception as e:
+        return {"error": str(e)}
 
 def get(path):
     with urllib.request.urlopen(SERVER + path, timeout=5) as r:
@@ -75,6 +88,34 @@ def main():
             scene = {"type": c, "src": fname}
         else:
             scene = {"type": "url", "src": src}
+        print(post({"tv": tv, "scene": scene}))
+
+    elif c == "playlist":
+        tv, rest = split_tv(rest)
+        # usage: playlist <interval> <file1> <file2> ...  OR  playlist <interval> url1 url2 ...
+        if len(rest) < 2:
+            print("need: interval + at least one item (image/video file or http url)")
+            return
+        interval = rest[0]
+        items = []
+        for it in rest[1:]:
+            if it.startswith("http://") or it.startswith("https://"):
+                items.append({"type": "url", "src": it})
+            else:
+                fname = os.path.basename(it)
+                dst = os.path.join(CONTENT_DIR, fname)
+                if os.path.abspath(it) == os.path.abspath(dst):
+                    pass  # already in content dir
+                elif os.path.isfile(it):
+                    shutil.copyfile(it, dst)
+                    print(f"copied {fname} to server content dir")
+                elif os.path.isfile(dst):
+                    print(f"{fname} already in server content dir")
+                else:
+                    print(f"WARNING: {it} not found (cwd or content dir)"); continue
+                ext = fname.rsplit(".", 1)[-1].lower() if "." in fname else ""
+                items.append({"type": "video" if ext in ("mp4", "webm", "mov", "mkv") else "image", "src": fname})
+        scene = {"type": "playlist", "items": items, "interval": int(interval)}
         print(post({"tv": tv, "scene": scene}))
 
     elif c == "copy":

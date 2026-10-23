@@ -86,6 +86,7 @@ one JSON scene. Scene types:
 {"type": "menu",  "title": "LUNCH", "items": [{"name": "Mangu", "price": "$9.99"}], "footer": "Catering available"}
 {"type": "url",   "src": "menu-premium-webp.html"}
 {"type": "blank"}
+{"type": "playlist", "interval": 15, "items": [<scene>, <scene>, ...]}  # server-side rotation
 ```
 
 Set a scene: `POST /set` with `{"tv": "all|menu1|...", "scene": {...}}`.
@@ -115,6 +116,7 @@ and [docs/UPGRADE.md](docs/UPGRADE.md) for the product roadmap.
 | `KFS_TVS` | `menu1,menu2,menu3` | Known device IDs |
 | `KFS_DEVICE_NAMES` | *(empty)* | Friendly names: `menu1=Kitchen 1,menu2=Kitchen 2` |
 | `KFS_AUTOREGISTER` | `1` | `0` disables auto-registration of new device IDs |
+| `KFS_API_TOKEN` | *(empty)* | If set, `POST /set` requires `Authorization: Bearer <token>` |
 
 State (scenes + registered devices) persists to `server/kfs-state.json`
 across restarts.

@@ -4,6 +4,21 @@ Base URL: `http://<server-ip>:8080` (configurable via `KFS_PORT`).
 
 All responses are JSON. CORS is enabled (`Access-Control-Allow-Origin: *`).
 
+## Authentication
+
+`POST /set` requires a bearer token **if** the server was started with
+`KFS_API_TOKEN` set:
+
+```
+Authorization: Bearer <token>
+```
+
+- Read endpoints (`GET /`, `GET /scene/<id>`, `GET /content/<file>`) stay
+  open so display devices need no credentials.
+- kfsctl.py picks the token up from the `KFS_API_TOKEN` env var
+  automatically.
+- Without a token configured, `/set` is open (LAN trust model).
+
 ## GET /
 
 Discovery + status. Lists registered devices, their current scenes, and
@@ -63,6 +78,27 @@ type. `404 {"error": "not found"}` if missing.
 | `menu` | `title`, `items[]` (`name`, `price`), `footer` | Styled menu card |
 | `url` | `src` (http(s) URL or content/ file) | Full web page |
 | `blank` | — | Blank screen |
+| `playlist` | `items[]` (array of scenes), `interval` (secs) | Server-side rotation |
+
+### Playlist example
+
+The server rotates through `items` every `interval` seconds and returns the
+active item on each poll — **clients need no playlist support** (they just
+see whatever scene is current):
+
+```json
+{
+  "type": "playlist",
+  "interval": 15,
+  "items": [
+    {"type": "url", "src": "menu-premium-webp.html"},
+    {"type": "video", "src": "promo.mp4", "loop": true},
+    {"type": "image", "src": "specials.webp"}
+  ]
+}
+```
+
+CLI: `python kfsctl.py playlist 15 menu-premium-webp.html promo.mp4 specials.webp`
 
 ### Menu example
 
@@ -88,6 +124,7 @@ type. `404 {"error": "not found"}` if missing.
 | `python kfsctl.py video <file> [tv]` | Copy + play a video |
 | `python kfsctl.py url <url-or-page> [tv]` | Show a web page |
 | `python kfsctl.py blank [tv]` | Blank a device |
+| `python kfsctl.py playlist <interval> <file\|url>... [tv]` | Rotate scenes |
 | `python kfsctl.py copy <file>...` | Upload content files |
 
 `tv` defaults to `all`. Override the server with `KFS_SERVER` env var.
@@ -105,3 +142,4 @@ reloaded on restart. Delete the file to reset.
 | `KFS_TVS` | `menu1,menu2,menu3` | Initial device IDs |
 | `KFS_DEVICE_NAMES` | *(empty)* | `menu1=Kitchen 1,menu2=Kitchen 2` |
 | `KFS_AUTOREGISTER` | `1` | `0` disables auto-registration |
+| `KFS_API_TOKEN` | *(empty)* | If set, `POST /set` requires `Authorization: Bearer <token>` |
