@@ -19,6 +19,7 @@ __pycache__/
 server/kfs-display-server.log
 server/kfs-state.json
 server/config.json
+server/.api_token
 
 # --- OS ---
 .DS_Store

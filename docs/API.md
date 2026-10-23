@@ -19,6 +19,27 @@ Authorization: Bearer <token>
   automatically.
 - Without a token configured, `/set` is open (LAN trust model).
 
+### Production token setup (this machine)
+
+The live server reads its token from `server/.api_token` (gitignored — never
+commit it). The Startup launcher `server/start-server.cmd` loads that file and
+starts the server with `KFS_API_TOKEN` set, so the token survives reboots.
+
+To rotate the token:
+
+```bash
+cd C:/Users/Jayto/tvctl/server
+python -c "import secrets; print(secrets.token_urlsafe(32))" > .api_token
+# restart the server (or reboot — the Startup shortcut picks it up)
+```
+
+To push a scene with the token:
+
+```bash
+cd C:/Users/Jayto/tvctl/server
+KFS_API_TOKEN=$(cat .api_token) python kfsctl.py url menu-premium-webp.html all
+```
+
 ## GET /
 
 Discovery + status. Lists registered devices, their current scenes, and
