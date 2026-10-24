@@ -60,6 +60,68 @@
   .footer .note { font-size:15px; color:#cfe8d4; }
   .footer .note b { color:#ffd700; }
   .footer .phone { font-size:18px; color:#ffd700; font-weight:700; letter-spacing:1px; }
+
+/* Anthony's premium TV layer: 1080p-safe, no external fonts or libraries. */
+:root { --gold:#ffd700; --gold-deep:#e8a800; --cream:#fff8e7; --green:#071f10; }
+body::before { content:""; position:fixed; inset:0; pointer-events:none; z-index:0;
+  background:radial-gradient(ellipse at 50% 46%, transparent 42%, rgba(0,0,0,.34) 100%); }
+.wrap { position:relative; z-index:1; }
+.header { position:relative; overflow:hidden; border-image:linear-gradient(90deg,#8e6d16,var(--gold),#fff0a1,var(--gold-deep)) 1;
+  border-bottom-width:2px; }
+.header::after { content:""; position:absolute; top:-20%; bottom:-20%; left:-45%; width:28%; pointer-events:none;
+  background:linear-gradient(100deg,transparent,rgba(255,239,170,.34),transparent);
+  transform:skewX(-22deg); animation:headerSweep 7s ease-in-out infinite; }
+.logo { position:relative; color:#16321c; overflow:hidden; }
+.logo::after { content:""; position:absolute; inset:-40%; background:linear-gradient(105deg,transparent 42%,rgba(255,255,255,.58) 50%,transparent 58%);
+  transform:translateX(-80%); animation:logoShimmer 5s ease-in-out infinite; }
+.brand h1 { font-family:Georgia,"Times New Roman",serif; font-weight:700;
+  background:linear-gradient(100deg,#fff0a6 0%,#ffd700 48%,#e8a800 100%); -webkit-background-clip:text; background-clip:text; color:transparent; }
+.brand .sub { color:#f0dc9c; }
+.header .right .hours { display:inline-block; padding:7px 12px; border:1px solid rgba(255,215,0,.46); border-radius:999px;
+  color:#ffe89a; font-size:14px; letter-spacing:1.6px; font-weight:700; animation:badgePulse 4.8s ease-in-out infinite; }
+.header .right .addr { margin-top:8px; }
+.grid { gap:18px; padding-top:16px; }
+.sec { position:relative; isolation:isolate; overflow:hidden; background:rgba(13,54,29,.72); border-color:rgba(255,215,0,.28);
+  box-shadow:inset 0 1px 0 rgba(255,245,205,.07),0 8px 24px rgba(0,0,0,.25); animation:cardRise .8s cubic-bezier(.2,.7,.2,1) both;
+  animation-delay:calc(var(--order,0) * 200ms); }
+.sec::before { content:""; position:absolute; inset:0; z-index:-1; pointer-events:none;
+  background:radial-gradient(ellipse at 90% 0%,rgba(255,215,0,.12),transparent 62%); opacity:.45; animation:cardGlow 8s ease-in-out infinite; }
+.sec h2 { position:relative; padding-bottom:8px; margin-bottom:6px; color:#ffe28a;
+  font-family:Georgia,"Times New Roman",serif; letter-spacing:1.5px; }
+.sec h2::after { content:""; position:absolute; left:0; bottom:1px; width:100%; height:1px;
+  background:linear-gradient(90deg,var(--gold),rgba(255,215,0,.08)); transform:scaleX(0); transform-origin:left center;
+  animation:underlineDraw .65s ease-out forwards; animation-delay:calc(var(--order,0) * 200ms + 250ms); }
+.item .nm { color:var(--cream); }
+.item .nm small { color:#c0d7c1; }
+.item .pr { position:relative; display:inline-block; color:#ffdf63; font-variant-numeric:tabular-nums; overflow:hidden;
+  animation:pricePop .6s ease-out both; animation-delay:calc(var(--order,0) * 200ms + 450ms); }
+.item .pr::after { content:""; position:absolute; inset:0; background:linear-gradient(100deg,transparent 25%,rgba(255,244,176,.82) 50%,transparent 75%);
+  transform:translate3d(-120%,0,0); animation:priceFlash .75s ease-out both; animation-delay:calc(var(--order,0) * 200ms + 470ms); }
+.photos { overflow:hidden; border-radius:10px; }
+.photos img { height:82px; transform:scale(1.03); animation:kenBurns 12s ease-in-out infinite alternate; }
+.photos img:nth-child(2) { animation-delay:-4s; }
+.photos img:nth-child(3) { animation-delay:-8s; }
+.footer { border-top-color:rgba(255,215,0,.56); }
+.footer .phone { color:#ffe28a; font-variant-numeric:tabular-nums; }
+.embers { position:fixed; inset:0; z-index:0; overflow:hidden; pointer-events:none; }
+.ember { position:absolute; width:3px; height:3px; border-radius:50%; background:#ffd76a; opacity:0;
+  box-shadow:0 0 7px rgba(255,198,74,.42); transform:translate3d(0,0,0); animation:emberDrift var(--dur,11s) linear var(--delay,0s) infinite; }
+.ember:nth-child(3n) { width:2px; height:2px; }
+@keyframes headerSweep { 0%,58% { transform:translateX(0) skewX(-22deg); opacity:0; } 70% { opacity:1; } 100% { transform:translateX(560%) skewX(-22deg); opacity:0; } }
+@keyframes logoShimmer { 0%,60% { transform:translateX(-80%); } 100% { transform:translateX(80%); } }
+@keyframes badgePulse { 0%,100% { opacity:1; } 50% { opacity:.76; } }
+@keyframes cardRise { from { opacity:0; transform:translate3d(0,16px,0); } to { opacity:1; transform:translate3d(0,0,0); } }
+@keyframes cardGlow { 0%,100% { opacity:.28; } 50% { opacity:.58; } }
+@keyframes underlineDraw { to { transform:scaleX(1); } }
+@keyframes pricePop { 0% { opacity:.35; transform:scale(.94); } 55% { opacity:1; transform:scale(1.04); } 100% { transform:scale(1); } }
+@keyframes priceFlash { to { transform:translate3d(120%,0,0); } }
+@keyframes kenBurns { from { transform:scale(1.03) translate3d(0,0,0); } to { transform:scale(1.12) translate3d(-1.2%,0,0); } }
+@keyframes emberDrift { 0% { opacity:0; transform:translate3d(0,8px,0); } 15% { opacity:.48; } 75% { opacity:.32; } 100% { opacity:0; transform:translate3d(22px,-64px,0); } }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation:none !important; transition:none !important; scroll-behavior:auto !important; }
+  .sec, .photos img, .ember { opacity:1 !important; transform:none !important; }
+}
+
 </style>
 </head>
 <body>
@@ -72,8 +134,8 @@
       <div class="tag">Fresh · Authentic · Made to Order</div>
     </div>
     <div class="right">
-      <div class="hours">🕐 Open Daily 7AM – 9PM</div>
-      <div class="addr">288 Kearny Ave, Kearny NJ · (201) 555-0142</div>
+      <div class="hours">CATERING AVAILABLE · ORDER AHEAD</div>
+      <div class="addr">288 Kearny Ave, Kearny NJ 07032</div>
     </div>
   </div>
 
@@ -88,7 +150,7 @@
           <div class="item"><span class="nm">Huevos a la Dominicana<small>Scrambled eggs, salami, fried cheese</small></span><span class="dots"></span><span class="pr">$8.95</span></div>
           <div class="item"><span class="nm">Tres Golpes con Queso<small>Add fried cheese to any breakfast</small></span><span class="dots"></span><span class="pr">+$2.00</span></div>
         </div>
-        <div class="photos"><img src="mangu.png" alt=""><img src="tostones.png" alt=""></div>
+        <div class="photos"><img src="mangu.webp" alt=""><img src="tostones.webp" alt=""></div>
       </div>
 
       <div class="sec">
@@ -98,7 +160,7 @@
           <div class="item"><span class="nm">Ensalada de Pollo<small>Grilled chicken over greens</small></span><span class="dots"></span><span class="pr">$9.95</span></div>
           <div class="item"><span class="nm">Ensalada de Papa<small>Potato salad, house style</small></span><span class="dots"></span><span class="pr">$5.95</span></div>
         </div>
-        <div class="photos"><img src="salad.png" alt=""></div>
+        <div class="photos"><img src="salad.webp" alt=""></div>
       </div>
 
       <div class="sec">
@@ -109,7 +171,7 @@
           <div class="item"><span class="nm">Yuca Frita<small>Fried cassava, garlic mojo</small></span><span class="dots"></span><span class="pr">$5.95</span></div>
           <div class="item"><span class="nm">Empanadas<small>Beef or chicken, 2 pcs</small></span><span class="dots"></span><span class="pr">$5.00</span></div>
         </div>
-        <div class="photos"><img src="tostones.png" alt=""><img src="empanadas.png" alt=""></div>
+        <div class="photos"><img src="tostones.webp" alt=""><img src="empanadas.webp" alt=""></div>
       </div>
     </div>
 
@@ -125,7 +187,7 @@
           <div class="item"><span class="nm">Hamburguesa<small>Beef patty, cheese, lettuce, tomato</small></span><span class="dots"></span><span class="pr">$7.95</span></div>
           <div class="item"><span class="nm">Add Fries<small>Any sandwich</small></span><span class="dots"></span><span class="pr">+$1.95</span></div>
         </div>
-        <div class="photos"><img src="chimi.png" alt=""><img src="cheesesteak.png" alt=""><img src="club.png" alt=""></div>
+        <div class="photos"><img src="chimi.webp" alt=""><img src="cheesesteak.webp" alt=""><img src="club.webp" alt=""></div>
       </div>
 
       <div class="sec">
@@ -135,7 +197,7 @@
           <div class="item"><span class="nm">5 Piezas<small>With fries</small></span><span class="dots"></span><span class="pr">$12.99</span></div>
           <div class="item"><span class="nm">Alitas Picantes<small>Spicy wings, 8 pcs</small></span><span class="dots"></span><span class="pr">$9.99</span></div>
         </div>
-        <div class="photos"><img src="picapollo.png" alt=""></div>
+        <div class="photos"><img src="picapollo.webp" alt=""></div>
       </div>
 
       <div class="sec">
@@ -146,7 +208,7 @@
           <div class="item"><span class="nm">Yaroa<small>Meat, cheese, fries, pink sauce</small></span><span class="dots"></span><span class="pr">$12.95</span></div>
           <div class="item"><span class="nm">Carne Cerdo Salada<small>Fried pork, onions, lime</small></span><span class="dots"></span><span class="pr">$9.95</span></div>
         </div>
-        <div class="photos"><img src="arrozpollo.png" alt=""><img src="mofongo.png" alt=""><img src="yaroa.png" alt=""></div>
+        <div class="photos"><img src="arrozpollo.webp" alt=""><img src="mofongo.webp" alt=""><img src="yaroa.webp" alt=""></div>
       </div>
     </div>
 
@@ -161,7 +223,7 @@
           <div class="item"><span class="nm">Batida Frutos Rojos<small>Mixed berry smoothie</small></span><span class="dots"></span><span class="pr">$6.95</span></div>
           <div class="item"><span class="nm">Soda / Agua<small>Bottled</small></span><span class="dots"></span><span class="pr">$1.99</span></div>
         </div>
-        <div class="photos"><img src="batidas.png" alt=""><img src="soda.png" alt=""></div>
+        <div class="photos"><img src="batidas.webp" alt=""><img src="soda.webp" alt=""></div>
       </div>
 
       <div class="sec">
@@ -180,7 +242,7 @@
           <div class="item"><span class="nm">Picadera Mediana<small>6 pcs each</small></span><span class="dots"></span><span class="pr">$34.99</span></div>
           <div class="item"><span class="nm">Picalonga<small>2 meats + sides</small></span><span class="dots"></span><span class="pr">$12.95</span></div>
         </div>
-        <div class="photos"><img src="picadera.png" alt=""></div>
+        <div class="photos"><img src="picadera.webp" alt=""></div>
       </div>
 
       <div class="sec">
@@ -190,15 +252,17 @@
           <div class="item"><span class="nm">Kids Quesadilla<small>Quesadilla + potatoes</small></span><span class="dots"></span><span class="pr">$5.95</span></div>
           <div class="item"><span class="nm">Student Special<small>Tenders, burger or wings + fries</small></span><span class="dots"></span><span class="pr">$6.95</span></div>
         </div>
-        <div class="photos"><img src="quesadilla.png" alt=""><img src="fries.png" alt=""></div>
+        <div class="photos"><img src="quesadilla.webp" alt=""><img src="fries.webp" alt=""></div>
       </div>
     </div>
   </div>
 
+  <div class="embers" aria-hidden="true"><i class="ember" style="left:11%;top:7%;--dur:8s;--delay:-0s"></i> <i class="ember" style="left:48%;top:36%;--dur:15s;--delay:-3s"></i> <i class="ember" style="left:85%;top:65%;--dur:13s;--delay:-6s"></i> <i class="ember" style="left:22%;top:94%;--dur:11s;--delay:-9s"></i> <i class="ember" style="left:59%;top:23%;--dur:9s;--delay:-12s"></i> <i class="ember" style="left:96%;top:52%;--dur:16s;--delay:-15s"></i> <i class="ember" style="left:33%;top:81%;--dur:14s;--delay:-2s"></i> <i class="ember" style="left:70%;top:10%;--dur:12s;--delay:-5s"></i> <i class="ember" style="left:7%;top:39%;--dur:10s;--delay:-8s"></i> <i class="ember" style="left:44%;top:68%;--dur:8s;--delay:-11s"></i> <i class="ember" style="left:81%;top:97%;--dur:15s;--delay:-14s"></i> <i class="ember" style="left:18%;top:26%;--dur:13s;--delay:-1s"></i> <i class="ember" style="left:55%;top:55%;--dur:11s;--delay:-4s"></i> <i class="ember" style="left:92%;top:84%;--dur:9s;--delay:-7s"></i> <i class="ember" style="left:29%;top:13%;--dur:16s;--delay:-10s"></i> <i class="ember" style="left:66%;top:42%;--dur:14s;--delay:-13s"></i> <i class="ember" style="left:3%;top:71%;--dur:12s;--delay:-0s"></i> <i class="ember" style="left:40%;top:0%;--dur:10s;--delay:-3s"></i></div>
   <div class="footer">
     <div class="note"><b>★</b> Catering available — call for pricing &amp; 1-week advance orders on Picadera</div>
-    <div class="phone">📞 (201) 555-0142</div>
+    <div class="phone">📞 (201) 428-1745</div>
   </div>
 </div>
+<script>document.querySelectorAll(".sec").forEach(function(card,index){card.style.setProperty("--order",index);});</script>
 </body>
 </html>

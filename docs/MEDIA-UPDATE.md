@@ -63,3 +63,16 @@ is missing or the server was started without it — restart via the launcher.
 - Auto-starts on boot via Startup shortcut → `start-server.cmd`
 - State persists in `server/kfs-state.json` (delete to reset)
 - TVs: menu1=10.1.10.46, menu2=10.1.10.91, menu3=10.1.10.185
+
+
+## Premium page and Tizen-safe motion
+
+The two premium HTML variants are self-contained and use local WEBP assets.
+`menu-premium-webp.html` and `menu-premium.html` both use optimized WEBP so the
+Tizen fallback page does not load the original multi-megabyte PNGs. The
+Picadera strip now uses a meat platter with fried yuca and plantain sides.
+
+Motion details and per-asset video specs are in
+[`PREMIUM-MOTION-SPECS.md`](./PREMIUM-MOTION-SPECS.md). The page has no runtime
+dependency on the supermarket site or internet; scene polling behavior is
+unchanged.
