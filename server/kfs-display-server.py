@@ -27,9 +27,9 @@ Environment:
   KFS_AUTOREGISTER  "0" disables auto-registration of unknown device ids
   KFS_API_TOKEN     if set, POST /set requires Authorization: Bearer <token>
 """
-import json, mimetypes, os, socket, sys, threading, time
+import json, mimetypes, os, re, socket, sys, threading, time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from urllib.parse import urlparse
+from urllib.parse import unquote, urlparse
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 CONTENT_DIR = os.path.join(ROOT, "content")
@@ -46,6 +46,7 @@ probe = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 try:
     probe.bind(("0.0.0.0", PORT))
 except OSError:
+    print(f"port {PORT} already in use (another server running?) - exiting", file=sys.stderr)
     sys.exit(0)
 finally:
     probe.close()
@@ -66,22 +67,55 @@ def _load_state():
 
 _state = _load_state()
 if _state.get("tvs"):
-    TVS = _state["tvs"]
+    # merge: persisted devices first, then any new ids added via KFS_TVS
+    TVS = list(_state["tvs"]) + [t for t in TVS if t not in _state["tvs"]]
 scenes = {tv: _state.get("scenes", {}).get(tv, {"type": "blank"}) for tv in TVS}
 lock = threading.Lock()
 
 def _save_state():
+    # atomic write: a crash mid-write must not wipe every device's scene
+    tmp = STATE_FILE + ".tmp"
     try:
-        with open(STATE_FILE, "w", encoding="utf-8") as f:
+        with open(tmp, "w", encoding="utf-8") as f:
             json.dump({"tvs": TVS, "scenes": scenes}, f, indent=1)
-    except Exception:
-        pass
+        os.replace(tmp, STATE_FILE)
+    except Exception as e:
+        print(f"WARNING: could not save state: {e}", file=sys.stderr)
+
+_ID_OK = re.compile(r"^[A-Za-z0-9_.-]{1,64}$")
+SCENE_TYPES = ("image", "video", "menu", "url", "blank", "playlist")
+
+def validate_scene(scene, nested=False):
+    """Return an error string, or None if the scene is valid."""
+    if not isinstance(scene, dict) or scene.get("type") not in SCENE_TYPES:
+        return f"scene.type must be one of {', '.join(SCENE_TYPES)}"
+    t = scene["type"]
+    if t in ("image", "video", "url") and not isinstance(scene.get("src"), str):
+        return f"{t} scene needs a string src"
+    if t == "menu" and not isinstance(scene.get("items", []), list):
+        return "menu items must be a list"
+    if t == "playlist":
+        if nested:
+            return "playlists cannot be nested"
+        items = scene.get("items")
+        if not isinstance(items, list) or not items:
+            return "playlist needs a non-empty items list"
+        try:
+            if float(scene.get("interval", 15)) <= 0:
+                raise ValueError
+        except (TypeError, ValueError):
+            return "playlist interval must be a positive number"
+        for it in items:
+            err = validate_scene(it, nested=True)
+            if err:
+                return "playlist item: " + err
+    return None
 
 def ensure_tv(tv):
     """Auto-register unknown TV ids so new devices join the ecosystem."""
     if tv in scenes:
         return True
-    if _AUTOREG:
+    if _AUTOREG and _ID_OK.match(tv or ""):
         with lock:
             if tv not in scenes:
                 TVS.append(tv)
@@ -115,7 +149,10 @@ def resolve_playlist(scene):
     items = scene.get("items") or []
     if not items:
         return {"type": "blank"}
-    interval = max(int(scene.get("interval", 15)), 2)
+    try:
+        interval = max(float(scene.get("interval", 15)), 2)
+    except (TypeError, ValueError):
+        interval = 15
     started = float(scene.get("started_at", time.time()))
     elapsed = max(0, time.time() - started)
     idx = int(elapsed // interval) % len(items)
@@ -139,6 +176,52 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    def _send_file(self, fname):
+        fpath = os.path.join(CONTENT_DIR, fname)
+        if not fname or not os.path.isfile(fpath):
+            self._json(404, {"error": "not found"})
+            return
+        ctype = mimetypes.guess_type(fname)[0] or "application/octet-stream"
+        size = os.path.getsize(fpath)
+        start, end = 0, size - 1
+        m = re.match(r"bytes=(\d*)-(\d*)$", self.headers.get("Range", ""))
+        partial = bool(m and (m.group(1) or m.group(2)))
+        if partial:
+            if m.group(1):
+                start = int(m.group(1))
+                if m.group(2):
+                    end = min(int(m.group(2)), size - 1)
+            else:  # suffix range: last N bytes
+                start = max(0, size - int(m.group(2)))
+            if start > end:
+                self.send_response(416)
+                self.send_header("Content-Range", f"bytes */{size}")
+                self.send_header("Content-Length", "0")
+                self.end_headers()
+                return
+        self.send_response(206 if partial else 200)
+        self.send_header("Content-Type", ctype)
+        self.send_header("Accept-Ranges", "bytes")
+        self.send_header("Content-Length", str(end - start + 1))
+        if partial:
+            self.send_header("Content-Range", f"bytes {start}-{end}/{size}")
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Cache-Control", "no-cache")
+        self.end_headers()
+        # stream in chunks instead of loading whole videos into memory
+        try:
+            with open(fpath, "rb") as f:
+                f.seek(start)
+                left = end - start + 1
+                while left > 0:
+                    chunk = f.read(min(65536, left))
+                    if not chunk:
+                        break
+                    self.wfile.write(chunk)
+                    left -= len(chunk)
+        except (BrokenPipeError, ConnectionResetError):
+            pass  # client (e.g. video element) aborted mid-transfer
+
     def do_GET(self):
         u = urlparse(self.path)
         p = u.path
@@ -152,20 +235,7 @@ class Handler(BaseHTTPRequestHandler):
             else:
                 self._json(200, resolve_playlist(scene))
         elif p.startswith("/content/"):
-            fname = os.path.basename(p[len("/content/"):])
-            fpath = os.path.join(CONTENT_DIR, fname)
-            if not os.path.isfile(fpath):
-                self._json(404, {"error": "not found"})
-                return
-            ctype = mimetypes.guess_type(fname)[0] or "application/octet-stream"
-            with open(fpath, "rb") as f:
-                data = f.read()
-            self.send_response(200)
-            self.send_header("Content-Type", ctype)
-            self.send_header("Content-Length", str(len(data)))
-            self.send_header("Access-Control-Allow-Origin", "*")
-            self.end_headers()
-            self.wfile.write(data)
+            self._send_file(os.path.basename(unquote(p[len("/content/"):])))
         elif p == "/":
             names = {}
             if DEVICE_NAMES:
@@ -173,8 +243,10 @@ class Handler(BaseHTTPRequestHandler):
                     if "=" in pair:
                         k, v = pair.split("=", 1)
                         names[k.strip()] = v.strip()
-            self._json(200, {"tvs": TVS, "device_names": names,
-                             "scenes": {t: scenes[t] for t in TVS},
+            with lock:
+                snap = {t: scenes[t] for t in TVS}
+            self._json(200, {"tvs": list(snap), "device_names": names,
+                             "scenes": snap,
                              "content": os.listdir(CONTENT_DIR) if os.path.isdir(CONTENT_DIR) else []})
         else:
             self._json(404, {"error": "not found"})
@@ -193,20 +265,33 @@ class Handler(BaseHTTPRequestHandler):
         except Exception:
             self._json(400, {"error": "bad json"})
             return
+        if not isinstance(body, dict):
+            self._json(400, {"error": "bad json"})
+            return
         tv = body.get("tv", "all")
+        if not isinstance(tv, str):
+            self._json(400, {"error": "tv must be a string"})
+            return
         scene = body.get("scene")
-        if not scene or not isinstance(scene, dict) or "type" not in scene:
-            self._json(400, {"error": "scene needs a type"})
+        err = validate_scene(scene)
+        if err:
+            self._json(400, {"error": err})
             return
         if set_scene(tv, scene):
             self._json(200, {"ok": True, "tv": tv, "scene": scene})
         else:
             self._json(400, {"error": "unknown tv"})
 
+class Server(ThreadingHTTPServer):
+    # Must be a class attribute: it is read during __init__ (bind). Setting it
+    # on the instance afterwards had no effect. On Windows SO_REUSEADDR would
+    # let a 2nd instance hijack the port.
+    allow_reuse_address = False
+    daemon_threads = True
+
 def main():
     os.makedirs(CONTENT_DIR, exist_ok=True)
-    srv = ThreadingHTTPServer(("0.0.0.0", PORT), Handler)
-    srv.allow_reuse_address = False  # Windows: SO_REUSEADDR would let a 2nd instance hijack the port
+    srv = Server(("0.0.0.0", PORT), Handler)
     print(f"KFS display server on :{PORT}  content={CONTENT_DIR}")
     print(f"TVs: {', '.join(TVS)}")
     if API_TOKEN:

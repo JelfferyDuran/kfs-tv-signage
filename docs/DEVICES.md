@@ -80,16 +80,22 @@ boot if configured). This is the route used for the 3 supermarket TVs.
 3. Build + install:
    ```bash
    cd scripts
-   ./build-install.sh            # builds wgt, installs on all TVs
-   ./build-install.sh 10.1.10.46 # just one TV
+   ./build-install.sh                  # one build per TV, installs menu1-3
+   ./build-install.sh menu1=10.1.10.46 # just one TV (id=ip)
    ```
    Set `PROFILE` in the script to your certificate profile name.
 
 ### Per-TV device ID
 
-The app's `TV_ID` is set in `tizen-app/app.js` (`var TV_ID = "menu1"`).
-Build a variant per TV if you want per-TV scenes; the server keys scenes by
-device ID. The server auto-registers any ID it sees, so a new TV just works.
+`scripts/build-install.sh` builds a separate wgt per TV and writes that TV's
+ID into `app.js` (`var TV_ID = "..."`), so each TV polls its own scene. Pass
+`id=ip` pairs to target specific TVs. The server auto-registers any ID it
+sees, so a new TV just works.
+
+Web pages (`url` scenes) are shown in a fullscreen iframe so the app keeps
+polling. If a TV ever shows a blank page in iframe mode, set
+`URL_MODE = "navigate"` in `app.js` — but then that TV stops polling and
+stays on the page until the app is relaunched.
 
 ---
 

@@ -15,11 +15,11 @@
    * /scene/<tv> protocol. ------------------------------------------------ */
   * { margin:0; padding:0; box-sizing:border-box; }
   html,body { width:100%; height:100%; overflow:hidden; background:#071f10; font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif; }
-  #stage { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; background:#071f10; }
+  #stage { position:fixed; top:0; right:0; bottom:0; left:0; display:flex; align-items:center; justify-content:center; background:#071f10; }
   #stage img { max-width:100%; max-height:100%; object-fit:contain; }
   #stage video { width:100%; height:100%; object-fit:contain; }
   #stage .frame { width:100%; height:100%; border:0; background:#071f10; }
-  #menu { display:none; width:100%; height:100%; flex-direction:column; padding:3% 4%;
+  #menu { display:none; position:fixed; top:0; right:0; bottom:0; left:0; z-index:1; flex-direction:column; padding:3% 4%;
           background:linear-gradient(160deg,#0a2e18 0%,#071f10 100%); color:#f5e9c8; overflow:hidden; }
   #menu .header { text-align:center; font-size:clamp(28px,5.5vh,64px); font-weight:800;
                   letter-spacing:.08em; text-transform:uppercase;
@@ -32,14 +32,15 @@
   #menu .dots { flex:1; border-bottom:2px dotted rgba(245,233,200,.35); }
   #menu .price { font-weight:700; color:#ffd700; font-variant-numeric:tabular-nums; }
   #menu .footer { text-align:center; font-size:clamp(14px,2.2vh,24px); color:#c9b783; padding-top:1.5vh; }
-  #offline { display:none; position:fixed; inset:0; z-index:99; align-items:center; justify-content:center;
+  #offline { display:none; position:fixed; top:0; right:0; bottom:0; left:0; z-index:99; align-items:center; justify-content:center;
              background:rgba(7,31,16,.94); color:#e8b0a0; font-size:clamp(18px,4vh,36px); text-align:center; letter-spacing:.05em; }
   #status { position:fixed; left:10px; bottom:6px; z-index:100; color:rgba(255,255,255,.35);
             font-size:12px; font-family:Consolas,monospace; }
 </style>
 </head>
 <body>
-<div id="stage"><div id="menu"><div class="header">MENU</div><div class="items"></div><div class="footer"></div></div></div>
+<div id="stage"></div>
+<div id="menu"><div class="header">MENU</div><div class="items"></div><div class="footer"></div></div>
 <div id="offline">⚠ NO SIGNAL — CHECK DISPLAY SERVER</div>
 <div id="status"></div>
 <script>
@@ -66,14 +67,14 @@
   function renderVideo(url,loop){ clearStage(); var v=document.createElement("video");
     v.src=url; v.autoplay=true; v.loop=loop!==false; v.muted=true; v.playsInline=true; stage.appendChild(v); v.play().catch(function(){}); }
   function renderMenu(data){ clearStage(); menuEl.style.display="flex";
-    menuEl.querySelector(".header").textContent = esc(data.title||"MENU");
+    menuEl.querySelector(".header").textContent = String(data.title||"MENU");
     var items = menuEl.querySelector(".items"); items.innerHTML="";
     (data.items||[]).forEach(function(it){
       var row=document.createElement("div"); row.className="item";
       row.innerHTML = "<span>"+esc(it.name)+"</span><span class='dots'></span><span class='price'>"+esc(it.price)+"</span>";
       items.appendChild(row);
     });
-    menuEl.querySelector(".footer").textContent = esc(data.footer||""); }
+    menuEl.querySelector(".footer").textContent = String(data.footer||""); }
   function renderUrl(url){ clearStage(); var source=String(url||"");
     var target = /^https?:\/\//i.test(source) ? source : SERVER+"/content/"+source.split("/").map(encodeURIComponent).join("/");
     setStatus("loading page: "+target);
@@ -81,14 +82,17 @@
 
   function applyScene(scene){
     if(!scene||!scene.type) return;
-    if(current && current.type===scene.type && current.src===scene.src && current.title===scene.title) return;
-    current=scene;
+    // compare the whole scene so menu price edits / loop changes re-render
+    var key=JSON.stringify(scene);
+    if(key===current) return;
+    current=key;
     switch(scene.type){
       case "image": renderImage(SERVER+"/content/"+scene.src); break;
       case "video": renderVideo(SERVER+"/content/"+scene.src, scene.loop); break;
       case "menu":  renderMenu(scene); break;
       case "url":   renderUrl(scene.src); break;
       case "blank": clearStage(); break;
+      default: setStatus("unsupported scene: "+scene.type); return;
     }
     setStatus("KFS player "+TV_ID+" — scene: "+scene.type);
   }
