@@ -7,7 +7,13 @@
 
   // ---- config: server IP/port. Set to the control server (this PC). ----
   var SERVER = "http://10.1.10.238:8080";
-  var TV_ID = "menu1"; // override per TV at install: menu1/menu2/menu3
+  var TV_ID = "menu1"; // rewritten per TV by scripts/build-install.sh
+  // "iframe" keeps this app alive and polling while a web page is shown.
+  // "navigate" replaces the app with the page: the TV then never polls again
+  // and gets stuck on that page until the app is relaunched. The earlier
+  // blank-iframe problem was most likely CSS `inset` (unsupported on 2020
+  // Tizen 5.5 / Chromium M69) collapsing #stage to 0x0 - fixed in index.html.
+  var URL_MODE = "iframe";
   var POLL_MS = 3000;
 
   var stage = document.getElementById("stage");
@@ -71,9 +77,10 @@
       ? source
       : (SERVER + "/content/" + source.split("/").map(encodeURIComponent).join("/"));
     setStatus("loading page: " + target);
-    // Navigate the Tizen app's top-level webview. Embedded iframes on retail
-    // Tizen can remain blank even when their URL is reachable from the TV.
-    window.location.replace(target);
+    if (URL_MODE === "navigate") { window.location.replace(target); return; }
+    var f = document.createElement("iframe");
+    f.src = target;
+    stage.appendChild(f);
   }
 
   function esc(s) {
@@ -84,9 +91,10 @@
 
   function applyScene(scene) {
     if (!scene || !scene.type) return;
-    if (current && current.type === scene.type &&
-        current.src === scene.src && current.title === scene.title) return; // no change
-    current = scene;
+    // compare the whole scene so menu price edits / loop changes re-render
+    var key = JSON.stringify(scene);
+    if (key === current) return; // no change
+    current = key;
     var base = SERVER;
     switch (scene.type) {
       case "image": renderImage(base + "/content/" + scene.src); break;
@@ -94,6 +102,7 @@
       case "menu": renderMenu(scene); break;
       case "url": renderUrl(scene.src); break;
       case "blank": clearStage(); break;
+      default: setStatus("unsupported scene: " + scene.type); return;
     }
     setStatus("scene: " + scene.type + " " + (scene.src || scene.title || ""));
   }

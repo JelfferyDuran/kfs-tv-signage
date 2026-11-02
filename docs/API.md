@@ -82,7 +82,8 @@ Response:
 {"ok": true, "tv": "all", "scene": {"type": "image", "src": "mangu.webp"}}
 ```
 
-Errors: `400 {"error": "bad json"}` · `400 {"error": "scene needs a type"}` ·
+Errors: `400 {"error": "bad json"}` · `400 {"error": "<validation message>"}`
+(unknown type, missing `src`, bad playlist interval/items) ·
 `400 {"error": "unknown tv"}` (auto-registration off).
 
 ## GET /content/<file>

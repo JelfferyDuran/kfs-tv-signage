@@ -2,7 +2,11 @@
 toolchain/
 tizen-studio-setup.exe
 *.wgt
-*.p12 *.pwd *.csr *.pri
+# one pattern per line - gitignore does not split on spaces
+*.p12
+*.pwd
+*.csr
+*.pri
 SamsungCertificate/
 
 # --- Build outputs ---
@@ -18,9 +22,11 @@ __pycache__/
 # --- Runtime ---
 server/kfs-display-server.log
 server/kfs-state.json
+server/kfs-state.json.tmp
 server/config.json
 server/.api_token
 
 # --- OS ---
 .DS_Store
 Thumbs.db
+.tv_tokens.json
